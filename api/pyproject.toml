@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "portfolio-api"
+version = "0.1.0"
+description = "Agentic RAG backend for the Sanket Shah portfolio (FastAPI + LangGraph + pgvector)."
+requires-python = ">=3.11"
+dependencies = [
+    # Web
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "sse-starlette>=2.1",
+    # Config
+    "python-dotenv>=1.0",
+    "pydantic>=2.7",
+    # LangChain / LangGraph (1.x ecosystem, matching the existing venv)
+    "langchain>=1.0",
+    "langchain-core>=1.0",
+    "langchain-openai>=1.0",
+    "langchain-anthropic>=1.0",
+    "langchain-text-splitters>=1.0",
+    "langgraph>=1.0",
+    "langgraph-checkpoint>=2.0",
+    # Vector store (Supabase Postgres + pgvector)
+    "langchain-postgres>=0.0.14",
+    "psycopg[binary]>=3.1",
+    # Document parsing / utilities
+    "pdfplumber>=0.11",
+    "tiktoken>=0.7",
+    "requests>=2.32",
+    "pytz>=2024.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.2", "ruff>=0.6"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["portfolio_api*"]
