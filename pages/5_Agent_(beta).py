@@ -74,11 +74,26 @@ if prompt := st.chat_input("Ask me about my work, projects, or experience..."):
 
             st.markdown(reply)
 
-            # Debug visibility for parity review
+            # Citations + debug visibility for parity review
             if result is not None:
+                citations = getattr(result, "citations", []) or []
+                if citations:
+                    chips = " ".join(
+                        f"<span style='display:inline-block;padding:2px 10px;border-radius:999px;"
+                        f"border:1px solid #374151;background:#111827;color:#e5e7eb;font-size:12px;"
+                        f"margin:4px 4px 0 0;'>{c.source} ({c.score:.3f})</span>"
+                        for c in citations
+                    )
+                    st.markdown(
+                        f"<div style='margin-top:6px;'><span style='color:#9ca3af;font-size:12px;'>"
+                        f"Sources:</span><br>{chips}</div>",
+                        unsafe_allow_html=True,
+                    )
                 with st.expander("Debug: retrieval"):
-                    st.write("Rewritten question:", result.rewritten_question or "(unchanged)")
                     st.write("Sources:", result.sources or "(none)")
+                    for c in citations:
+                        st.markdown(f"**{c.source}** · score `{c.score:.4f}`")
+                        st.caption(c.snippet)
 
     st.session_state.agent_messages.append({"role": "assistant", "content": reply})
 

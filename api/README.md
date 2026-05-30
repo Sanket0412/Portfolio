@@ -35,9 +35,12 @@ api/
 │   ├── config.py        # env-based settings
 │   ├── db.py            # pgvector store + connection helpers
 │   ├── llm/             # provider abstraction (openai|anthropic) + embeddings
-│   └── main.py          # FastAPI app (/health; /chat in Phase 2)
+│   ├── rag/             # loaders, sanitize (+ content exclusions), splitter, retriever
+│   ├── agent/           # ReAct agent (graph), tools, prompts, citations
+│   ├── api/             # HTTP routers (chat.py = streaming /chat SSE)
+│   └── main.py          # FastAPI app (/health + /chat SSE)
 ├── migrations/          # 0001_enable_pgvector.sql
-└── scripts/             # check_infra.py (ingest.py, parity_eval.py in Phase 1)
+└── scripts/             # check_infra.py, ingest.py, parity_eval.py
 ```
 
 ## Notes

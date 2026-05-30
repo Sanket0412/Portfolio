@@ -2,7 +2,7 @@
 
 Run locally:  uvicorn portfolio_api.main:app --reload --port 8000
 
-Phase 0 exposes /health only. The /chat SSE endpoint lands in Phase 2.
+Exposes /health and the Phase 2 streaming /chat endpoint.
 """
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from portfolio_api import __version__
+from portfolio_api.api import chat as chat_router
 from portfolio_api.config import get_settings
 
 settings = get_settings()
@@ -27,6 +28,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(chat_router.router)
 
 
 @app.get("/health")

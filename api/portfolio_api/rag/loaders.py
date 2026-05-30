@@ -215,6 +215,20 @@ def load_profile_context(
                     Document(page_content=safe, metadata={"source": "cloudserve_projects"})
                 )
 
+    # Markdown project docs (e.g. personal projects). Any .md in content/projects/ is
+    # ingested and tagged by its filename stem, lowercased
+    # (TodaySponsor_Project.md -> "todaysponsor_project"). Drop a new .md here and
+    # re-ingest to make the agent aware of another project.
+    for md_path in sorted(PROJECTS_DIR.glob("*.md")):
+        md_text = md_path.read_text(encoding="utf-8", errors="ignore").strip()
+        if not md_text:
+            continue
+        safe = sanitize_retrieved_text(md_text, max_chars=max_chars_per_doc)
+        if safe:
+            docs.append(
+                Document(page_content=safe, metadata={"source": md_path.stem.lower()})
+            )
+
     if not docs:
         raise FileNotFoundError(
             "No usable profile docs found. "

@@ -21,6 +21,15 @@ _INJECTION_PATTERNS = [
     r"bypass",
 ]
 
+# Content-policy exclusions: topics the agent must NEVER surface or discuss,
+# regardless of which source they appear in. Any line matching these is dropped at
+# ingest time, so the content is never embedded and therefore never retrievable.
+# This is a hard exclusion distinct from injection defense above.
+# NOTE: changing this requires a re-ingest (python api/scripts/ingest.py --reset).
+_EXCLUDED_PATTERNS = [
+    r"text.?to.?sql",  # the text-to-SQL LLM agent work is intentionally off-limits
+]
+
 
 def sanitize_retrieved_text(text: str, *, max_chars: int) -> str:
     """Sanitize retrieved text to reduce prompt injection risk while preserving facts.
@@ -37,12 +46,14 @@ def sanitize_retrieved_text(text: str, *, max_chars: int) -> str:
     text = re.sub(r"\s+\n", "\n", text)
     text = re.sub(r"\n{3,}", "\n\n", text).strip()
 
-    # Remove lines that look like instruction hijacks
+    # Remove lines that look like instruction hijacks, plus any excluded-topic lines
     lines = text.splitlines()
     kept: List[str] = []
     for ln in lines:
         low = ln.strip().lower()
         if any(re.search(p, low) for p in _INJECTION_PATTERNS):
+            continue
+        if any(re.search(p, low) for p in _EXCLUDED_PATTERNS):
             continue
         kept.append(ln)
 

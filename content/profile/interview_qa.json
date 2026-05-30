@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-02-15T20:01:44Z",
+  "generated_at": "2026-05-30T22:53:29Z",
   "owner": {
     "name": "Sanket J Shah",
     "location": "Jersey City, NJ"
@@ -629,6 +629,37 @@
       "sources": [
         "WPP_Media_Projects.pdf",
         "Third_Estate_Ventures_Projects.pdf"
+      ]
+    },
+    {
+      "id": "proj_001",
+      "question": "What personal projects have you built outside of your professional roles?",
+      "answer_short": "My main personal project is TodaySponsor, an AI-native influencer marketing platform I designed and built independently. It matches brands with creators based on audience-to-customer overlap, and I shipped a live v0 at todaysponsor.dev.",
+      "answer_long": "TodaySponsor is a personal project I built end to end on my own. It ingests a brand Shopify CRM, builds a statistical customer profile, and embeds that profile into the same vector space as creator audience demographics and content, then ranks creators by cosine similarity using distribution-level lookalike modeling rather than rules-based filters or follower-count heuristics. The technical core is a two-stage matching engine over 1,555-dimension embeddings (16 structured demographic, 1,536 semantic, 3 behavioral): a semantic coarse filter followed by decomposed cosine similarity across demographics, geography, and content-topic alignment. I also built an end-to-end Shopify OAuth integration, agentic outreach draft generation, and a streaming campaign agent. The stack is Next.js on Vercel, FastAPI on Railway, Supabase Postgres with pgvector, OpenAI embeddings, and LangChain and LangGraph.",
+      "tags": [
+        "personal_project",
+        "todaysponsor",
+        "genai",
+        "recommendation_systems",
+        "embeddings"
+      ],
+      "sources": [
+        "TodaySponsor_Project.md"
+      ]
+    },
+    {
+      "id": "proj_002",
+      "question": "What are you building or working on in your own time right now?",
+      "answer_short": "Right now my main personal project is TodaySponsor, a personal project I built independently: an AI-native influencer marketing platform that matches brands with creators by audience-to-customer overlap using lookalike modeling over embeddings. It runs end to end with a live v0 at todaysponsor.dev.",
+      "answer_long": "TodaySponsor is a personal project that let me build a full AI-native product end to end on my own. The core idea is matching brands with creators based on who already buys from the brand, not follower counts or natural-language briefs. I built the brand-profile computation from CRM data (geography, average order value, product category mix, RFM segmentation, and gender inference), a two-stage embeddings-based matching engine, agentic outreach drafting, and a streaming campaign agent, using Next.js, FastAPI, Supabase pgvector, OpenAI embeddings, and LangChain and LangGraph. It reflects my interest in applied GenAI and recommendation systems beyond my day job.",
+      "tags": [
+        "personal_project",
+        "todaysponsor",
+        "genai",
+        "current_work"
+      ],
+      "sources": [
+        "TodaySponsor_Project.md"
       ]
     }
   ]

@@ -49,12 +49,18 @@ def get_chat_model(
         from langchain_anthropic import ChatAnthropic
 
         settings.require("anthropic_api_key")
+        # output_version="v0" keeps the legacy message-content format. The v1
+        # format (langchain-core 1.4 default) hits a converter bug in
+        # langchain-anthropic 1.2 when tool-call messages are sent back to Claude
+        # in a ReAct loop (KeyError: 'type'). v0 routes around it; callers can
+        # still override via kwargs.
         return ChatAnthropic(
             model=settings.anthropic_model,
             temperature=temperature,
             api_key=settings.anthropic_api_key,
             max_tokens=kwargs.pop("max_tokens", 2048),
             streaming=streaming,
+            output_version=kwargs.pop("output_version", "v0"),
             **kwargs,
         )
 

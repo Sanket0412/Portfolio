@@ -10,7 +10,7 @@ never as instructions.
 """
 from __future__ import annotations
 
-from typing import Any, List
+from typing import Any, List, Tuple
 
 from langchain_core.documents import Document
 
@@ -56,6 +56,37 @@ def retrieve(
             continue
         seen.add(key)
         merged.append(d)
+    return merged
+
+
+def retrieve_with_scores(
+    query: str,
+    *,
+    k_qa: int = DEFAULT_K_QA,
+    k_docs: int = DEFAULT_K_DOCS,
+) -> List[Tuple[Document, float]]:
+    """Like :func:`retrieve`, but pairs each document with its similarity score.
+
+    Scores come from ``PGVector.similarity_search_with_score`` (cosine distance:
+    lower is closer). Used by the agent's retrieval tool to emit citations. The
+    two-pool merge and de-duplication mirror :func:`retrieve` exactly.
+    """
+    vs = get_vector_store()
+    qa = vs.similarity_search_with_score(
+        query, k=k_qa, filter={"source": {"$eq": "interview_qa"}}
+    )
+    other = vs.similarity_search_with_score(
+        query, k=k_docs, filter={"source": {"$ne": "interview_qa"}}
+    )
+
+    seen: set = set()
+    merged: List[Tuple[Document, float]] = []
+    for d, score in (*qa, *other):
+        key = ((d.metadata or {}).get("source"), (d.page_content or "")[:120])
+        if key in seen:
+            continue
+        seen.add(key)
+        merged.append((d, float(score)))
     return merged
 
 
