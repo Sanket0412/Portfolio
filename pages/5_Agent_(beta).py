@@ -78,10 +78,15 @@ if prompt := st.chat_input("Ask me about my work, projects, or experience..."):
             if result is not None:
                 citations = getattr(result, "citations", []) or []
                 if citations:
+                    # Retrieval hits carry a similarity score; exact sources
+                    # (publications, github) use 0.0 and are labelled "exact".
+                    def _chip_label(c):
+                        return f"{c.source} (exact)" if c.score == 0.0 else f"{c.source} ({c.score:.3f})"
+
                     chips = " ".join(
                         f"<span style='display:inline-block;padding:2px 10px;border-radius:999px;"
                         f"border:1px solid #374151;background:#111827;color:#e5e7eb;font-size:12px;"
-                        f"margin:4px 4px 0 0;'>{c.source} ({c.score:.3f})</span>"
+                        f"margin:4px 4px 0 0;'>{_chip_label(c)}</span>"
                         for c in citations
                     )
                     st.markdown(
@@ -92,7 +97,8 @@ if prompt := st.chat_input("Ask me about my work, projects, or experience..."):
                 with st.expander("Debug: retrieval"):
                     st.write("Sources:", result.sources or "(none)")
                     for c in citations:
-                        st.markdown(f"**{c.source}** · score `{c.score:.4f}`")
+                        score_label = "exact" if c.score == 0.0 else f"{c.score:.4f}"
+                        st.markdown(f"**{c.source}** · score `{score_label}`")
                         st.caption(c.snippet)
 
     st.session_state.agent_messages.append({"role": "assistant", "content": reply})

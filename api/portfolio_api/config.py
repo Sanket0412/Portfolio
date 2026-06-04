@@ -54,6 +54,9 @@ class Settings:
 
     # Optional integrations (Phase 2 tools)
     github_token: str = field(default_factory=lambda: os.getenv("GITHUB_TOKEN", ""))
+    github_username: str = field(
+        default_factory=lambda: os.getenv("GITHUB_USERNAME", "Sanket0412")
+    )
 
     # FastAPI
     cors_origins: list[str] = field(

@@ -31,6 +31,17 @@ _EXCLUDED_PATTERNS = [
 ]
 
 
+def is_excluded(text: str) -> bool:
+    """True if any excluded-topic pattern appears in ``text`` (case-insensitive).
+
+    Centralizes the content-policy exclusion so it can be enforced beyond ingest:
+    live tools (e.g. the GitHub repo lookup) reuse this to make sure an excluded
+    topic is never surfaced even when it does not flow through ``sanitize_retrieved_text``.
+    """
+    low = (text or "").lower()
+    return any(re.search(p, low) for p in _EXCLUDED_PATTERNS)
+
+
 def sanitize_retrieved_text(text: str, *, max_chars: int) -> str:
     """Sanitize retrieved text to reduce prompt injection risk while preserving facts.
 
@@ -53,7 +64,7 @@ def sanitize_retrieved_text(text: str, *, max_chars: int) -> str:
         low = ln.strip().lower()
         if any(re.search(p, low) for p in _INJECTION_PATTERNS):
             continue
-        if any(re.search(p, low) for p in _EXCLUDED_PATTERNS):
+        if is_excluded(ln):
             continue
         kept.append(ln)
 

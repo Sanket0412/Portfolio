@@ -15,7 +15,7 @@ from portfolio_api.rag.retriever import (
     retrieve,
     retrieve_with_scores,
 )
-from portfolio_api.rag.sanitize import sanitize_retrieved_text
+from portfolio_api.rag.sanitize import is_excluded, sanitize_retrieved_text
 from portfolio_api.rag.splitter import split_docs
 
 __all__ = [
@@ -30,6 +30,7 @@ __all__ = [
     "get_retriever",
     "retrieve",
     "retrieve_with_scores",
+    "is_excluded",
     "sanitize_retrieved_text",
     "split_docs",
 ]
