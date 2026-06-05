@@ -22,6 +22,10 @@ from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langgraph.prebuilt import create_react_agent
 
 from portfolio_api.agent.prompts import build_system_prompt
+from portfolio_api.agent.suggestions import (
+    STARTER_SUGGESTIONS,
+    generate_suggestions,
+)
 from portfolio_api.agent.tools import (
     AGENT_TOOLS,
     Citation,
@@ -51,6 +55,7 @@ class AgentResult:
     rewritten_question: str = ""
     sources: List[str] = field(default_factory=list)
     citations: List[Citation] = field(default_factory=list)
+    suggestions: List[str] = field(default_factory=list)
 
 
 def _prompt(state) -> List[BaseMessage]:
@@ -99,6 +104,17 @@ def _fast_path_reply(question: str) -> Optional[str]:
     return None
 
 
+def fast_path_suggestions(question: str) -> List[str]:
+    """Starter suggestions for a greeting / cold start; none for blocked or memory turns.
+
+    Blocked input takes precedence (it is checked first in ``_fast_path_reply``), so we
+    only offer starters for a genuine, non-blocked greeting.
+    """
+    if not should_block_user_input(question) and is_greeting(question):
+        return list(STARTER_SUGGESTIONS)
+    return []
+
+
 def _finalize(text: str) -> str:
     """Apply the output guardrails: empty fallback, redact, no em-dashes, truncate."""
     text = (text or "").strip() or EMPTY_CONTEXT_REPLY
@@ -121,7 +137,7 @@ def answer(
 
     canned = _fast_path_reply(question)
     if canned is not None:
-        return AgentResult(answer=canned)
+        return AgentResult(answer=canned, suggestions=fast_path_suggestions(question))
 
     reset_citations()
     messages = list(history) + [HumanMessage(content=question)]
@@ -130,9 +146,11 @@ def answer(
     last = final["messages"][-1]
     text = _finalize(message_text(last))
     citations = get_citations()
+    sources = sorted({c.source for c in citations})
 
     return AgentResult(
         answer=text,
-        sources=sorted({c.source for c in citations}),
+        sources=sources,
         citations=citations,
+        suggestions=generate_suggestions(question, text, sources),
     )

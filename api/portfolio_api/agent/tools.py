@@ -6,6 +6,8 @@ Tools:
   - ``list_publications`` (Phase 2b) returns the curated publications with exact
     venues, dates, and citation counts from ``publications.json``.
   - ``lookup_github`` (Phase 2b) returns the owner's live public GitHub repos.
+  - ``assess_job_fit`` (Phase 2c) gathers grounded portfolio evidence per job
+    requirement so the model can write an honest, gap-aware fit assessment.
 
 Citation capture: a tool cannot return both the model-facing context string and a
 structured citation list through the ReAct loop, so each tool records its sources
@@ -143,5 +145,74 @@ def lookup_github(query: str = "") -> str:
     return format_github_repos(repos, query=query)
 
 
+# Job-fit retrieval budget per requirement. Kept small because one assessment may
+# probe many requirements and each probe is two pgvector searches (QA + docs pools).
+_JD_K_QA = 1
+_JD_K_DOCS = 3
+_MAX_REQUIREMENTS = 10
+_JD_EVIDENCE_CHARS = 320
+
+
+@tool
+def assess_job_fit(requirements: List[str]) -> str:
+    """Gather grounded portfolio evidence for a job's requirements so you can write an
+    honest fit assessment. Call this when the user pastes a job description or asks
+    whether Sanket is a fit for a role. Pass the distinct skills, technologies, and
+    responsibilities you parsed from the posting as a list of short strings (one per
+    requirement). For each requirement this returns the closest matching evidence from
+    Sanket's resume, projects, and interview Q&A, or a clear note that nothing strong
+    was found. Read the snippets and judge each match honestly; never claim experience
+    the evidence does not actually show.
+    """
+    # De-duplicate (case-insensitive, order-preserving) and bound the count.
+    seen_req: set = set()
+    ordered: List[str] = []
+    for r in requirements or []:
+        r = (r or "").strip()
+        if not r or r.lower() in seen_req:
+            continue
+        seen_req.add(r.lower())
+        ordered.append(r)
+    ordered = ordered[:_MAX_REQUIREMENTS]
+
+    if not ordered:
+        return (
+            "No requirements were provided to assess. Extract the key skills, "
+            "technologies, and responsibilities from the job description and call this "
+            "tool again with them as a list."
+        )
+
+    blocks: List[str] = []
+    for req in ordered:
+        pairs = retrieve_with_scores(req, k_qa=_JD_K_QA, k_docs=_JD_K_DOCS)
+        if not pairs:
+            blocks.append(f"REQUIREMENT: {req}\nEVIDENCE:\n  (no portfolio evidence retrieved)")
+            continue
+
+        lines = [f"REQUIREMENT: {req}", "EVIDENCE:"]
+        for d, score in pairs:
+            src = (d.metadata or {}).get("source", "unknown_source")
+            snippet = " ".join((d.page_content or "").split())[:_JD_EVIDENCE_CHARS]
+            lines.append(f"  [SOURCE={src} | distance={score:.3f}] {snippet}")
+            _record_citation(
+                Citation(source=src, snippet=snippet[:_SNIPPET_CHARS], score=score)
+            )
+        blocks.append("\n".join(lines))
+
+    header = (
+        "JOB-FIT EVIDENCE (grounded retrieval per requirement; lower distance = closer "
+        "match). Assess each requirement honestly against its snippets: if the evidence "
+        "genuinely supports it, treat it as a match and ground your claim in it; if the "
+        "snippets do not actually address the requirement, treat it as a gap and say so. "
+        "Do not invent or overstate experience to fill a gap."
+    )
+    return header + "\n\n" + "\n\n".join(blocks)
+
+
 # Tools registered with the agent.
-AGENT_TOOLS = [retrieve_portfolio_context, list_publications, lookup_github]
+AGENT_TOOLS = [
+    retrieve_portfolio_context,
+    list_publications,
+    lookup_github,
+    assess_job_fit,
+]

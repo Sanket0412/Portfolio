@@ -11,6 +11,7 @@ from components.navbar import render_sidebar_profile
 from langchain_core.messages import AIMessage, HumanMessage
 
 from portfolio_api.agent import answer
+from portfolio_api.guardrails import looks_like_job_description
 
 PERSONA_NAME = "Sanket J Shah"
 ASSISTANT_AVATAR = "https://avatars.githubusercontent.com/u/68991626?v=4"
@@ -35,6 +36,8 @@ if "agent_history" not in st.session_state:
     st.session_state.agent_history = []  # list[BaseMessage] passed to the agent
 if "agent_session_id" not in st.session_state:
     st.session_state.agent_session_id = str(uuid4())
+if "last_suggestions" not in st.session_state:
+    st.session_state.last_suggestions = []  # follow-up chips for the latest turn
 
 # =========================
 # Header
@@ -54,10 +57,17 @@ for message in st.session_state.agent_messages:
     with st.chat_message(role, avatar=_avatar_for_role(role)):
         st.markdown(message.get("content", ""))
 
-if prompt := st.chat_input("Ask me about my work, projects, or experience..."):
+# A clicked follow-up chip (set on the previous run) takes priority over typed input.
+pending = st.session_state.pop("pending_suggestion", None)
+typed = st.chat_input("Ask me about my work, projects, or experience...")
+prompt = pending or typed
+
+if prompt:
     st.session_state.agent_messages.append({"role": "user", "content": prompt})
     with st.chat_message("user", avatar=_avatar_for_role("user")):
         st.markdown(prompt)
+        if looks_like_job_description(prompt):
+            st.caption("🧭 Recruiter / job-fit mode detected - matching against my experience.")
 
     with st.chat_message("assistant", avatar=_avatar_for_role("assistant")):
         with st.spinner("Thinking..."):
@@ -107,6 +117,20 @@ if prompt := st.chat_input("Ask me about my work, projects, or experience..."):
     if result is not None:
         st.session_state.agent_history.append(HumanMessage(content=prompt))
         st.session_state.agent_history.append(AIMessage(content=reply))
+        st.session_state.last_suggestions = getattr(result, "suggestions", []) or []
+    else:
+        st.session_state.last_suggestions = []
+
+# =========================
+# Follow-up suggestion chips (Phase 2d)
+# =========================
+if st.session_state.last_suggestions:
+    st.markdown("**You might also ask:**")
+    cols = st.columns(len(st.session_state.last_suggestions))
+    for i, suggestion in enumerate(st.session_state.last_suggestions):
+        if cols[i].button(suggestion, key=f"suggestion_{i}", use_container_width=True):
+            st.session_state.pending_suggestion = suggestion
+            st.rerun()
 
 # =========================
 # Sidebar controls
@@ -118,4 +142,5 @@ with st.sidebar:
         st.session_state.agent_messages = []
         st.session_state.agent_history = []
         st.session_state.agent_session_id = str(uuid4())
+        st.session_state.last_suggestions = []
         st.rerun()

@@ -46,6 +46,24 @@ _SECRET_LIKE_PATTERNS = [
     r"AKIA[0-9A-Z]{16}",                    # AWS Access Key ID
 ]
 
+# Phrases that signal a pasted job description (recruiter / job-fit mode, Phase 2c).
+_JD_SIGNAL_PATTERNS = [
+    r"\bjob description\b",
+    r"\bresponsibilities\b",
+    r"\bqualifications\b",
+    r"\brequirements\b",
+    r"\bwhat you'?ll do\b",
+    r"\bwhat you will do\b",
+    r"\bwe(?:'re| are) (?:looking for|seeking)\b",
+    r"\byou will\b",
+    r"\byears of experience\b",
+    r"\bnice to have\b",
+    r"\bpreferred qualifications\b",
+    r"\b(?:about the|the) role\b",
+    r"\brole overview\b",
+    r"\bwho you are\b",
+]
+
 
 def is_greeting(text: str) -> bool:
     return bool(_GREETING_RE.match(text or ""))
@@ -54,6 +72,21 @@ def is_greeting(text: str) -> bool:
 def is_memory_like(text: str) -> bool:
     low = (text or "").strip().lower()
     return low.startswith("remember that ") or low.startswith("remember ")
+
+
+def looks_like_job_description(text: str) -> bool:
+    """Heuristic: does this input look like a pasted job description?
+
+    Used to engage recruiter / job-fit mode (Phase 2c) in the harness now and the
+    Next.js "paste a JD" UI later. Requires the text to be reasonably long AND to hit
+    at least two distinct JD signal phrases, so a short question that merely mentions
+    "requirements" or "you will" does not trip it.
+    """
+    low = (text or "").strip().lower()
+    if len(low) < 200:
+        return False
+    hits = sum(1 for p in _JD_SIGNAL_PATTERNS if re.search(p, low))
+    return hits >= 2
 
 
 def should_block_user_input(text: str) -> bool:

@@ -8,6 +8,7 @@ Event types (each ``data`` is a JSON string):
   - ``tool_call``   the agent invoked a tool: ``{"name": "...", "args": {...}}``
   - ``tool_result`` a tool returned: ``{"name": "..."}``
   - ``citations``   sources backing the answer: ``[{"source","snippet","score"}, ...]``
+  - ``suggestions`` follow-up questions to offer next: ``["...", ...]``
   - ``final``       the fully guardrailed answer (authoritative): ``{"answer": "..."}``
   - ``done``        end of stream: ``[DONE]``
   - ``error``       something failed: ``{"message": "..."}``
@@ -31,8 +32,10 @@ from portfolio_api.agent.graph import (
     _fast_path_reply,
     _finalize,
     build_agent,
+    fast_path_suggestions,
     message_text,
 )
+from portfolio_api.agent.suggestions import generate_suggestions
 from portfolio_api.agent.tools import get_citations, reset_citations
 from portfolio_api.guardrails import strip_em_dashes
 
@@ -71,6 +74,7 @@ async def _event_stream(req: ChatRequest) -> AsyncGenerator[dict, None]:
     canned = _fast_path_reply(question)
     if canned is not None:
         yield _sse("final", {"answer": canned})
+        yield _sse("suggestions", fast_path_suggestions(question))
         yield _sse("done", "[DONE]")
         return
 
@@ -105,7 +109,13 @@ async def _event_stream(req: ChatRequest) -> AsyncGenerator[dict, None]:
             "citations",
             [{"source": c.source, "snippet": c.snippet, "score": c.score} for c in citations],
         )
-        yield _sse("final", {"answer": _finalize("".join(buffered))})
+
+        final_text = _finalize("".join(buffered))
+        yield _sse("final", {"answer": final_text})
+        yield _sse(
+            "suggestions",
+            generate_suggestions(question, final_text, sorted({c.source for c in citations})),
+        )
         yield _sse("done", "[DONE]")
 
     except Exception as exc:  # surface a clean error event instead of a 500 mid-stream
