@@ -31,6 +31,7 @@ from sse_starlette.sse import EventSourceResponse
 from portfolio_api.agent.graph import (
     _fast_path_reply,
     _finalize,
+    _prepare_messages,
     build_agent,
     fast_path_suggestions,
     message_text,
@@ -79,7 +80,9 @@ async def _event_stream(req: ChatRequest) -> AsyncGenerator[dict, None]:
         return
 
     reset_citations()
-    messages = _to_lc_history(req.history) + [HumanMessage(content=question)]
+    # Seed one retrieval up front (records citations) so the model can answer the common
+    # case in a single LLM call; matches the in-process answer()/stream_answer() paths.
+    messages = _prepare_messages(question, _to_lc_history(req.history))
 
     buffered: List[str] = []
     try:
